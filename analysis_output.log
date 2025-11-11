@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/user/GMGT-643/src/main_analysis_improved.py", line 17, in <module>
+    from models import fit_and_forecast_all_models
+  File "/home/user/GMGT-643/src/models.py", line 16, in <module>
+    from sklearn.linear_model import LinearRegression
+ModuleNotFoundError: No module named 'sklearn'

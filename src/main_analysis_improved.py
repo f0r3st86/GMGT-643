@@ -232,7 +232,11 @@ def run_improved_analysis(data_path='data/processed/ct_housing_monthly.csv',
 
     # Static vs Rolling comparison for best model
     best_model = static_results.iloc[0]['model']
-    best_model_key = [k for k, v in static_models.items() if v.name == best_model][0]
+    # Convert model name to key format (e.g., "Holt-Winters" -> "holt_winters")
+    best_model_key = best_model.lower().replace('-', '_').replace(' ', '_')
+    if best_model_key not in static_forecasts:
+        # Fallback to first available model
+        best_model_key = list(static_forecasts.keys())[0]
 
     print(f"\n  8. Static vs Rolling comparison ({best_model})...")
     plot_static_vs_rolling_comparison(

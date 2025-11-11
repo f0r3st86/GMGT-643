@@ -161,7 +161,8 @@ def plot_forecasts(actual_dates, actual_values, forecast_dates, forecasts_dict,
                 label=f'{model_name.replace("_", " ").title()}', alpha=0.8)
 
     # Add vertical line at forecast start
-    ax.axvline(x=forecast_dates[0], color='red', linestyle=':', linewidth=2,
+    ax.axvline(x=forecast_dates.iloc[0] if hasattr(forecast_dates, 'iloc') else forecast_dates[0],
+               color='red', linestyle=':', linewidth=2,
                alpha=0.5, label='Forecast Start')
 
     ax.set_xlabel('Date', fontsize=12)
