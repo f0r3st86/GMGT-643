@@ -1,5 +1,7 @@
 # Connecticut Housing Price Forecasting: Time Series Analysis
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/f0r3st86/GMGT-643/blob/main/notebooks/CT_Housing_Price_Forecasting_Colab.ipynb)
+
 ## Project Overview
 
 This research project examines whether classical time series methods can accurately forecast median residential sale prices in Connecticut. The study tests whether Holt-Winters' exponential smoothing provides significant improvements over simple models like naïve and seasonal naïve forecasts, applying forecasting techniques to real housing market data with particular attention to crisis periods like the 2008 Financial Crisis and the COVID-19 pandemic.
@@ -66,7 +68,7 @@ GMGT-643/
 │   ├── visualization.py        # Plotting functions
 │   └── main_analysis.py        # Main analysis pipeline
 ├── notebooks/
-│   └── analysis.ipynb          # Jupyter notebook for interactive analysis
+│   └── CT_Housing_Price_Forecasting_Colab.ipynb  # Google Colab notebook (complete analysis)
 ├── results/
 │   ├── figures/                # Visualization outputs
 │   └── tables/                 # Results tables
@@ -104,7 +106,33 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Quick Start: Run Complete Analysis
+### ⚡ Quickest Start: Google Colab (Recommended)
+
+The easiest way to run this analysis is using Google Colab - no setup required!
+
+**Option 1: Direct Link**
+1. Open the notebook in Colab: [CT_Housing_Price_Forecasting_Colab.ipynb](notebooks/CT_Housing_Price_Forecasting_Colab.ipynb)
+2. Click "Open in Colab" or upload to your Google Drive
+3. Run all cells sequentially (Runtime > Run all)
+4. Results and visualizations will appear inline
+
+**Option 2: Upload to Colab**
+1. Go to https://colab.research.google.com/
+2. Upload `notebooks/CT_Housing_Price_Forecasting_Colab.ipynb`
+3. Run all cells
+
+The Colab notebook includes:
+- ✓ Automatic package installation
+- ✓ Data acquisition and preprocessing
+- ✓ All 5 forecasting models
+- ✓ Comprehensive visualizations
+- ✓ Model evaluation and comparison
+- ✓ Crisis period analysis
+- ✓ Results export
+
+---
+
+### Quick Start: Run Complete Analysis Locally
 
 ```bash
 # Option 1: Run all steps sequentially
@@ -166,13 +194,15 @@ This script:
 - Analyzes crisis period performance
 - Saves all results
 
-### Interactive Analysis
+### Interactive Analysis (Local Jupyter)
 
-Use the Jupyter notebook for interactive exploration:
+If you prefer to run the notebook locally:
 
 ```bash
-jupyter notebook notebooks/analysis.ipynb
+jupyter notebook notebooks/CT_Housing_Price_Forecasting_Colab.ipynb
 ```
+
+**Note**: The notebook is optimized for Google Colab but works in local Jupyter with minor modifications (remove Colab-specific code like `files.download()`).
 
 ## Expected Outcomes
 
