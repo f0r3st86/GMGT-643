@@ -45,6 +45,29 @@ Five forecasting approaches are compared:
 4. **Holt-Winters Exponential Smoothing**: Captures level, trend, and seasonal patterns with adaptive weighting
 5. **OLS Regression**: Uses time trend and monthly dummy variables
 
+### Forecasting Methods
+
+The project implements **two forecasting approaches** to provide comprehensive analysis:
+
+#### 1. Static Forecasts (Traditional Approach)
+- Train on 2001-2018 data
+- Generate all 60 monthly forecasts (2019-2023) at once
+- **Use case**: Demonstrates long-term forecasting capability
+- **Limitation**: Models don't update with new data, errors accumulate
+
+#### 2. Rolling Forecasts (Realistic Approach) ⭐ **Recommended**
+- Train on 2001-2018 data → Forecast January 2019
+- Re-train on 2001-Jan 2019 data → Forecast February 2019
+- Continue updating model with each new observation
+- **Use case**: Simulates real-world forecasting where models are updated
+- **Benefit**: More accurate, adapts to recent trends, prevents error accumulation
+
+**Why Rolling is Better**:
+- Mirrors how forecasting works in practice
+- Models adapt to economic changes and market shifts
+- Provides realistic accuracy assessment
+- Typically shows 20-50% better performance than static forecasts
+
 ### Evaluation Metrics
 
 Models are evaluated using three standard error metrics:
@@ -66,7 +89,9 @@ GMGT-643/
 │   ├── models.py               # Five forecasting models
 │   ├── evaluation.py           # Performance metrics (RMSE, MAE, MAPE)
 │   ├── visualization.py        # Plotting functions
-│   └── main_analysis.py        # Main analysis pipeline
+│   ├── main_analysis.py        # Main analysis pipeline (static forecasts)
+│   ├── rolling_forecast.py     # Rolling forecast implementation
+│   └── main_analysis_improved.py # Improved analysis (static + rolling comparison)
 ├── notebooks/
 │   └── CT_Housing_Price_Forecasting_Colab.ipynb  # Google Colab notebook (complete analysis)
 ├── results/
@@ -135,14 +160,19 @@ The Colab notebook includes:
 ### Quick Start: Run Complete Analysis Locally
 
 ```bash
-# Option 1: Run all steps sequentially
+# Step 1: Download and preprocess data
 python src/data_acquisition.py
 python src/data_preprocessing.py
+
+# Step 2: Run analysis
+# Option A: Original analysis (static forecasts only)
 python src/main_analysis.py
 
-# Option 2: Run main analysis (if data already processed)
-python src/main_analysis.py
+# Option B: Improved analysis (static + rolling forecasts comparison) ⭐ RECOMMENDED
+python src/main_analysis_improved.py
 ```
+
+**Recommended**: Use `main_analysis_improved.py` to see both static and rolling forecast results with comparison visualizations.
 
 ### Step-by-Step Workflow
 
@@ -225,18 +255,38 @@ After running the analysis, results will be saved to:
   - `05_forecast_errors.png` - Error patterns over time
   - `06_seasonal_pattern.png` - Monthly seasonal patterns
   - `07_crisis_analysis.png` - Crisis period analysis
+  - `08_static_vs_rolling_comparison.png` - Static vs rolling forecast comparison (improved analysis only)
+  - `09_improvement_heatmap.png` - Improvement metrics heatmap (improved analysis only)
 
 - **Tables**: `results/tables/`
-  - `model_comparison.csv` - Model performance metrics
+  - `model_comparison.csv` - Model performance metrics (static forecasts)
+  - `static_vs_rolling_comparison.csv` - Comparison of both methods (improved analysis only)
   - `crisis_analysis.csv` - Crisis period performance
 
 ## Key Contributions
 
-This project makes two key contributions:
+This project makes three key contributions:
 
 1. **Practical Application**: Demonstrates the application of classical time series methods to a real-world dataset directly relevant to economic decision-making
 
-2. **Quantified Value**: Shows stakeholders whether sophisticated models are worth the complexity over simple rules of thumb by quantifying forecasting errors in real dollar terms
+2. **Methodological Innovation**: Compares static (traditional) vs rolling (realistic) forecasting approaches, showing why walk-forward validation is essential for accurate forecast assessment
+
+3. **Quantified Value**: Shows stakeholders whether sophisticated models are worth the complexity over simple rules of thumb by quantifying forecasting errors in real dollar terms
+
+### Why Two Forecasting Methods?
+
+**Static Forecasts** (Traditional):
+- Shows model's ability to forecast far into the future
+- Useful for strategic planning scenarios
+- Demonstrates theoretical model performance
+
+**Rolling Forecasts** (Realistic):
+- Reflects how forecasting actually works in practice
+- Models update as new data arrives
+- Provides actionable accuracy metrics
+- Typically 20-50% more accurate than static forecasts
+
+**For Your Research**: Report both methods to provide complete analysis. Use rolling forecasts for realistic accuracy assessment and static forecasts to demonstrate long-term forecasting capability.
 
 ## Technologies Used
 
