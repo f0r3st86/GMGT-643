@@ -367,13 +367,16 @@ class OLSRegressionModel(ForecastingModel):
 
         # Create monthly dummy variables
         if isinstance(train_data.index, pd.DatetimeIndex):
-            months = train_data.index.month
+            months = list(train_data.index.month)
         else:
             # Assume monthly frequency starting from first observation
             months = [(i % 12) + 1 for i in range(n)]
 
         # Create dummy variables (exclude one month to avoid multicollinearity)
         month_dummies = pd.get_dummies(months, prefix='month', drop_first=True)
+        # Ensure numeric dtype
+        for col in month_dummies.columns:
+            month_dummies[col] = month_dummies[col].astype(int)
 
         # Combine features
         X = pd.DataFrame({
@@ -417,6 +420,9 @@ class OLSRegressionModel(ForecastingModel):
         future_months = [((last_month + i) % 12) + 1 for i in range(steps)]
 
         month_dummies = pd.get_dummies(future_months, prefix='month', drop_first=True)
+        # Ensure numeric dtype
+        for col in month_dummies.columns:
+            month_dummies[col] = month_dummies[col].astype(int)
 
         # Combine features
         X_future = pd.DataFrame({
@@ -513,11 +519,14 @@ class OLSWithExogenousModel(ForecastingModel):
         # Add monthly dummies
         if self.include_seasonality:
             if isinstance(train_data.index, pd.DatetimeIndex):
-                months = train_data.index.month
+                months = list(train_data.index.month)
             else:
                 months = [(i % 12) + 1 for i in range(n)]
             month_dummies = pd.get_dummies(months, prefix='month', drop_first=True)
             month_dummies.index = X.index
+            # Ensure all columns are numeric
+            for col in month_dummies.columns:
+                month_dummies[col] = month_dummies[col].astype(int)
             X = pd.concat([X, month_dummies], axis=1)
 
         # Add exogenous variables
@@ -602,6 +611,9 @@ class OLSWithExogenousModel(ForecastingModel):
             future_months = [((last_month + i) % 12) + 1 for i in range(steps)]
             month_dummies = pd.get_dummies(future_months, prefix='month', drop_first=True)
             month_dummies.index = X_future.index
+            # Ensure all columns are numeric
+            for col in month_dummies.columns:
+                month_dummies[col] = month_dummies[col].astype(int)
             X_future = pd.concat([X_future, month_dummies], axis=1)
 
         # Add exogenous variables
