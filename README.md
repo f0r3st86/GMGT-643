@@ -35,13 +35,14 @@ This research project examines whether classical time series methods can accurat
 
 ### Forecasting Models
 
-Five forecasting approaches are compared:
+Six forecasting approaches are compared:
 
 1. **Naïve Model**: Uses the most recent observed price as the forecast
 2. **Seasonal Naïve Model**: Uses the price from the same month one year ago
 3. **Moving Average Model**: Averages recent months to smooth short-term fluctuations
 4. **Holt-Winters Exponential Smoothing**: Captures level, trend, and seasonal patterns with adaptive weighting
 5. **OLS Regression**: Uses time trend and monthly dummy variables
+6. **OLS with Exogenous Variables**: Incorporates FRED economic indicators as additional predictors
 
 ### Evaluation Metrics
 
@@ -60,8 +61,9 @@ GMGT-643/
 │   └── processed/              # Processed time series data
 ├── src/
 │   ├── data_acquisition.py     # Downloads CT Real Estate data
+│   ├── fred_data_acquisition.py # Downloads FRED economic indicators
 │   ├── data_preprocessing.py   # Filters and creates time series
-│   ├── models.py               # Five forecasting models
+│   ├── models.py               # Six forecasting models (incl. exogenous)
 │   ├── evaluation.py           # Performance metrics (RMSE, MAE, MAPE)
 │   ├── visualization.py        # Plotting functions
 │   └── main_analysis.py        # Main analysis pipeline
@@ -174,6 +176,79 @@ Use the Jupyter notebook for interactive exploration:
 jupyter notebook notebooks/analysis.ipynb
 ```
 
+## Using FRED Economic Data (Enhanced Analysis)
+
+The project now supports incorporating FRED (Federal Reserve Economic Data) indicators to improve forecasting accuracy.
+
+### Available FRED Indicators
+
+| Series ID | Description | Category |
+|-----------|-------------|----------|
+| `MORTGAGE30US` | 30-Year Fixed Mortgage Rate | Financing |
+| `CTURN` | Connecticut Unemployment Rate | Employment |
+| `UNRATE` | National Unemployment Rate | Employment |
+| `FEDFUNDS` | Federal Funds Rate | Monetary Policy |
+| `CPIAUCSL` | Consumer Price Index | Inflation |
+| `CSUSHPINSA` | Case-Shiller Home Price Index | Housing Market |
+| `UMCSENT` | Consumer Sentiment Index | Sentiment |
+
+### Step 1: Get a FRED API Key (Free)
+
+1. Visit: https://fred.stlouisfed.org/docs/api/api_key.html
+2. Create a free account
+3. Request an API key
+4. Set it as an environment variable:
+
+```bash
+export FRED_API_KEY='your-api-key-here'
+```
+
+### Step 2: Download FRED Data
+
+```bash
+python src/fred_data_acquisition.py
+```
+
+This will download economic indicators to `data/raw/fred_economic_data.csv`.
+
+### Step 3: Merge Housing and FRED Data
+
+```python
+from src.data_preprocessing import merge_housing_and_fred_data
+
+# Merge datasets with optional lagged features
+merged_data = merge_housing_and_fred_data(
+    housing_path='data/processed/ct_housing_monthly.csv',
+    fred_path='data/raw/fred_economic_data.csv',
+    output_path='data/processed/ct_housing_with_fred.csv',
+    lag_periods=[1, 3, 6, 12]  # Create lagged versions of indicators
+)
+```
+
+### Step 4: Run Analysis with Exogenous Variables
+
+```python
+from src.models import fit_and_forecast_with_exogenous, compare_exogenous_impact
+
+# Compare models with and without FRED data
+results, model = compare_exogenous_impact(
+    train_data=train_prices,
+    exog_train=train_fred_data,
+    test_data=test_prices,
+    exog_test=test_fred_data
+)
+```
+
+### Derived Features
+
+The FRED module automatically creates derived features:
+
+- **INFLATION_YOY**: Year-over-year CPI change
+- **REAL_MORTGAGE_RATE**: Nominal rate minus inflation
+- **MORTGAGE_SPREAD**: Mortgage rate minus Fed Funds rate
+- **MORTGAGE_CHANGE_12M**: 12-month change in mortgage rates
+- **HP_INDEX_YOY**: Year-over-year Case-Shiller change
+
 ## Expected Outcomes
 
 Based on the research design, the expected outcomes are:
@@ -215,6 +290,7 @@ This project makes two key contributions:
 - **Time Series**: statsmodels
 - **Visualization**: matplotlib, seaborn
 - **Statistical Analysis**: scipy
+- **External Data**: fredapi (Federal Reserve Economic Data)
 
 ## Future Extensions
 
@@ -223,9 +299,10 @@ Potential extensions for this research:
 1. Geographic analysis by county or city
 2. Property type stratification (single-family vs. condos)
 3. Advanced models (ARIMA, SARIMA, Prophet, LSTM)
-4. External variables (unemployment, interest rates, inventory)
+4. Additional FRED indicators (housing inventory, building permits)
 5. Forecast combination methods
 6. Real-time updating dashboard
+7. Machine learning models with economic features
 
 ## References
 
@@ -243,4 +320,4 @@ This project is for educational purposes.
 
 ---
 
-**Last Updated**: November 2024
+**Last Updated**: December 2024

@@ -457,6 +457,236 @@ class OLSRegressionModel(ForecastingModel):
         return params
 
 
+class OLSWithExogenousModel(ForecastingModel):
+    """
+    OLS Regression Model with Exogenous Variables.
+
+    Extends the basic OLS model to include external economic indicators
+    (e.g., FRED data) as additional predictors.
+    """
+
+    def __init__(self, exog_columns=None, include_trend=True, include_seasonality=True):
+        """
+        Initialize the model.
+
+        Parameters:
+        -----------
+        exog_columns : list of str, optional
+            List of column names to use as exogenous variables.
+            If None, all numeric columns except 'median_price' will be used.
+        include_trend : bool
+            Whether to include a time trend variable
+        include_seasonality : bool
+            Whether to include monthly dummy variables
+        """
+        super().__init__("OLS with Exogenous")
+        self.exog_columns = exog_columns
+        self.include_trend = include_trend
+        self.include_seasonality = include_seasonality
+        self.model = None
+        self.train_length = None
+        self.feature_columns = None
+        self.exog_means = None  # For filling missing future values
+
+    def fit(self, train_data, exog_data=None):
+        """
+        Fit OLS regression model with exogenous variables.
+
+        Parameters:
+        -----------
+        train_data : pd.Series
+            Target variable (housing prices)
+        exog_data : pd.DataFrame, optional
+            Exogenous variables (economic indicators)
+        """
+        self.train_data = train_data
+        n = len(train_data)
+        self.train_length = n
+
+        # Start building feature matrix
+        X = pd.DataFrame(index=range(n))
+
+        # Add time trend
+        if self.include_trend:
+            X['time_trend'] = np.arange(1, n + 1)
+
+        # Add monthly dummies
+        if self.include_seasonality:
+            if isinstance(train_data.index, pd.DatetimeIndex):
+                months = train_data.index.month
+            else:
+                months = [(i % 12) + 1 for i in range(n)]
+            month_dummies = pd.get_dummies(months, prefix='month', drop_first=True)
+            month_dummies.index = X.index
+            X = pd.concat([X, month_dummies], axis=1)
+
+        # Add exogenous variables
+        if exog_data is not None:
+            # Determine which columns to use
+            if self.exog_columns is None:
+                # Use all numeric columns
+                numeric_cols = exog_data.select_dtypes(include=[np.number]).columns.tolist()
+                # Exclude price-related columns
+                exclude_cols = ['median_price', 'mean_price', 'count', 'std_price']
+                self.exog_columns = [c for c in numeric_cols if c not in exclude_cols]
+
+            # Align and add exogenous data
+            exog_subset = exog_data[self.exog_columns].copy()
+            exog_subset.index = X.index
+
+            # Store means for filling future missing values
+            self.exog_means = exog_subset.mean()
+
+            # Fill any missing values with column means
+            exog_subset = exog_subset.fillna(self.exog_means)
+
+            X = pd.concat([X, exog_subset], axis=1)
+
+        self.feature_columns = X.columns.tolist()
+
+        # Target variable
+        y = train_data.values
+
+        # Drop any rows with NaN (from lagged features)
+        valid_idx = ~X.isna().any(axis=1)
+        X_clean = X[valid_idx]
+        y_clean = y[valid_idx]
+
+        # Fit OLS model
+        X_with_const = sm.add_constant(X_clean)
+        self.model = sm.OLS(y_clean, X_with_const).fit()
+
+        self.fitted = True
+
+        # Print model summary
+        print(f"\n{self.name} Model Summary:")
+        print(f"  R-squared: {self.model.rsquared:.4f}")
+        print(f"  Adj R-squared: {self.model.rsquared_adj:.4f}")
+        print(f"  Features used: {len(self.feature_columns)}")
+        if self.exog_columns:
+            print(f"  Exogenous variables: {len(self.exog_columns)}")
+
+    def predict(self, steps, future_exog=None):
+        """
+        Generate forecasts using the fitted regression model.
+
+        Parameters:
+        -----------
+        steps : int
+            Number of steps ahead
+        future_exog : pd.DataFrame, optional
+            Future values of exogenous variables.
+            If None, uses last known values or means.
+
+        Returns:
+        --------
+        np.array
+            Forecasted values
+        """
+        if not self.fitted:
+            raise ValueError("Model must be fitted before prediction")
+
+        # Build future feature matrix
+        X_future = pd.DataFrame(index=range(steps))
+
+        # Add time trend
+        if self.include_trend:
+            X_future['time_trend'] = np.arange(
+                self.train_length + 1,
+                self.train_length + steps + 1
+            )
+
+        # Add monthly dummies
+        if self.include_seasonality:
+            last_month = self.train_length % 12
+            future_months = [((last_month + i) % 12) + 1 for i in range(steps)]
+            month_dummies = pd.get_dummies(future_months, prefix='month', drop_first=True)
+            month_dummies.index = X_future.index
+            X_future = pd.concat([X_future, month_dummies], axis=1)
+
+        # Add exogenous variables
+        if self.exog_columns:
+            if future_exog is not None and len(future_exog) >= steps:
+                # Use provided future values
+                exog_future = future_exog[self.exog_columns].iloc[:steps].copy()
+                exog_future.index = X_future.index
+                exog_future = exog_future.fillna(self.exog_means)
+            else:
+                # Use means as placeholder
+                print("Warning: Using mean values for exogenous variables in forecast")
+                exog_future = pd.DataFrame(
+                    {col: [self.exog_means[col]] * steps for col in self.exog_columns},
+                    index=X_future.index
+                )
+            X_future = pd.concat([X_future, exog_future], axis=1)
+
+        # Ensure all columns from training are present
+        for col in self.feature_columns:
+            if col not in X_future.columns:
+                X_future[col] = 0
+
+        # Reorder columns to match training
+        X_future = X_future[self.feature_columns]
+
+        # Add constant
+        X_future_with_const = sm.add_constant(X_future, has_constant='add')
+
+        # Ensure constant column exists
+        if 'const' not in X_future_with_const.columns:
+            X_future_with_const.insert(0, 'const', 1)
+
+        # Generate predictions
+        forecasts = self.model.predict(X_future_with_const)
+
+        return np.array(forecasts)
+
+    def get_params(self):
+        params = {
+            'name': self.name,
+            'train_length': self.train_length,
+            'include_trend': self.include_trend,
+            'include_seasonality': self.include_seasonality,
+            'exog_columns': self.exog_columns
+        }
+
+        if self.model is not None:
+            params.update({
+                'r_squared': self.model.rsquared,
+                'adj_r_squared': self.model.rsquared_adj,
+                'aic': self.model.aic,
+                'bic': self.model.bic,
+                'n_features': len(self.feature_columns)
+            })
+
+            # Add top 5 most significant coefficients
+            if hasattr(self.model, 'pvalues'):
+                sig_features = self.model.pvalues.sort_values().head(5)
+                params['top_significant_features'] = sig_features.to_dict()
+
+        return params
+
+    def get_feature_importance(self):
+        """
+        Get feature importance based on t-statistics.
+
+        Returns:
+        --------
+        pd.DataFrame
+            DataFrame with coefficients, t-stats, and p-values
+        """
+        if not self.fitted:
+            raise ValueError("Model must be fitted first")
+
+        importance = pd.DataFrame({
+            'coefficient': self.model.params,
+            't_stat': self.model.tvalues,
+            'p_value': self.model.pvalues,
+            'abs_t_stat': np.abs(self.model.tvalues)
+        }).sort_values('abs_t_stat', ascending=False)
+
+        return importance
+
+
 class ModelFactory:
     """
     Factory class to create forecasting models.
@@ -498,6 +728,16 @@ class ModelFactory:
 
         elif model_name.lower() == 'ols' or model_name.lower() == 'regression':
             return OLSRegressionModel()
+
+        elif model_name.lower() == 'ols_exog' or model_name.lower() == 'ols_with_exogenous':
+            exog_columns = kwargs.get('exog_columns', None)
+            include_trend = kwargs.get('include_trend', True)
+            include_seasonality = kwargs.get('include_seasonality', True)
+            return OLSWithExogenousModel(
+                exog_columns=exog_columns,
+                include_trend=include_trend,
+                include_seasonality=include_seasonality
+            )
 
         else:
             raise ValueError(f"Unknown model: {model_name}")
@@ -551,3 +791,138 @@ def fit_and_forecast_all_models(train_data, forecast_steps):
             forecasts[name] = None
 
     return forecasts, models
+
+
+def fit_and_forecast_with_exogenous(train_data, exog_train, forecast_steps,
+                                     exog_test=None, exog_columns=None):
+    """
+    Fit models including OLS with exogenous variables and generate forecasts.
+
+    Parameters:
+    -----------
+    train_data : pd.Series
+        Training target data (housing prices)
+    exog_train : pd.DataFrame
+        Training exogenous data (FRED indicators)
+    forecast_steps : int
+        Number of steps to forecast
+    exog_test : pd.DataFrame, optional
+        Test period exogenous data for prediction
+    exog_columns : list of str, optional
+        Specific columns to use as exogenous variables
+
+    Returns:
+    --------
+    tuple
+        (forecasts dict, models dict)
+    """
+    print("\n" + "=" * 60)
+    print("Fitting Models with Exogenous Variables")
+    print("=" * 60)
+
+    # Create all base models
+    models = ModelFactory.create_all_models()
+
+    # Add OLS with exogenous model
+    models['ols_with_fred'] = OLSWithExogenousModel(exog_columns=exog_columns)
+
+    forecasts = {}
+
+    for name, model in models.items():
+        print(f"\nFitting {name} model...")
+        try:
+            if name == 'ols_with_fred':
+                # Fit with exogenous data
+                model.fit(train_data, exog_data=exog_train)
+                forecasts[name] = model.predict(forecast_steps, future_exog=exog_test)
+            else:
+                # Fit regular models
+                model.fit(train_data)
+                forecasts[name] = model.predict(forecast_steps)
+            print(f"  {name} fitted successfully")
+        except Exception as e:
+            print(f"  Error fitting {name}: {e}")
+            forecasts[name] = None
+
+    return forecasts, models
+
+
+def compare_exogenous_impact(train_data, exog_train, test_data, exog_test=None,
+                              exog_columns=None):
+    """
+    Compare OLS model with and without exogenous variables.
+
+    Parameters:
+    -----------
+    train_data : pd.Series
+        Training target data
+    exog_train : pd.DataFrame
+        Training exogenous data
+    test_data : pd.Series
+        Test target data for evaluation
+    exog_test : pd.DataFrame, optional
+        Test period exogenous data
+    exog_columns : list of str, optional
+        Specific columns to use
+
+    Returns:
+    --------
+    pd.DataFrame
+        Comparison of model performance
+    """
+    from .evaluation import calculate_rmse, calculate_mae, calculate_mape
+
+    print("\n" + "=" * 60)
+    print("Comparing Impact of Exogenous Variables")
+    print("=" * 60)
+
+    steps = len(test_data)
+
+    # Fit OLS without exogenous
+    ols_basic = OLSRegressionModel()
+    ols_basic.fit(train_data)
+    pred_basic = ols_basic.predict(steps)
+
+    # Fit OLS with exogenous
+    ols_exog = OLSWithExogenousModel(exog_columns=exog_columns)
+    ols_exog.fit(train_data, exog_data=exog_train)
+    pred_exog = ols_exog.predict(steps, future_exog=exog_test)
+
+    # Calculate metrics
+    actual = test_data.values
+
+    results = pd.DataFrame({
+        'Model': ['OLS (Basic)', 'OLS (with FRED)'],
+        'RMSE': [
+            calculate_rmse(actual, pred_basic),
+            calculate_rmse(actual, pred_exog)
+        ],
+        'MAE': [
+            calculate_mae(actual, pred_basic),
+            calculate_mae(actual, pred_exog)
+        ],
+        'MAPE': [
+            calculate_mape(actual, pred_basic),
+            calculate_mape(actual, pred_exog)
+        ],
+        'R-squared': [
+            ols_basic.get_params().get('r_squared', None),
+            ols_exog.get_params().get('r_squared', None)
+        ]
+    })
+
+    # Calculate improvement
+    rmse_improvement = (results.loc[0, 'RMSE'] - results.loc[1, 'RMSE']) / results.loc[0, 'RMSE'] * 100
+    mape_improvement = (results.loc[0, 'MAPE'] - results.loc[1, 'MAPE']) / results.loc[0, 'MAPE'] * 100
+
+    print("\nModel Comparison:")
+    print(results.to_string(index=False))
+    print(f"\nRMSE Improvement with FRED data: {rmse_improvement:.1f}%")
+    print(f"MAPE Improvement with FRED data: {mape_improvement:.1f}%")
+
+    # Print feature importance
+    print("\nTop 10 Most Important Features (by t-statistic):")
+    importance = ols_exog.get_feature_importance()
+    print(importance.head(10).to_string())
+
+    return results, ols_exog

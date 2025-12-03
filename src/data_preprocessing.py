@@ -4,12 +4,14 @@ Filters and processes Connecticut Real Estate Sales data
 - Filters for residential properties
 - Filters for arms-length transactions
 - Creates monthly median price time series
+- Merges with FRED economic indicators
 """
 
 import pandas as pd
 import numpy as np
 import os
 from datetime import datetime
+from typing import Optional, List
 
 
 class CTRealEstatePreprocessor:
@@ -408,6 +410,189 @@ class CTRealEstatePreprocessor:
         print("=" * 80)
 
         return monthly
+
+    def merge_with_fred_data(self, housing_df: pd.DataFrame,
+                              fred_path: str = 'data/raw/fred_economic_data.csv',
+                              lag_periods: Optional[List[int]] = None) -> pd.DataFrame:
+        """
+        Merge housing data with FRED economic indicators.
+
+        Parameters:
+        -----------
+        housing_df : pd.DataFrame
+            Monthly housing price data with 'date' column
+        fred_path : str
+            Path to FRED data CSV file
+        lag_periods : list of int, optional
+            List of lag periods to create for economic variables.
+            E.g., [1, 3, 6, 12] creates 1-month, 3-month, 6-month, 12-month lags.
+            If None, no lagged features are created.
+
+        Returns:
+        --------
+        pd.DataFrame
+            Merged dataset with housing and economic indicators
+        """
+        print("\nMerging housing data with FRED economic indicators...")
+
+        if not os.path.exists(fred_path):
+            print(f"Warning: FRED data file not found at {fred_path}")
+            print("Please run fred_data_acquisition.py first to download FRED data")
+            return housing_df
+
+        # Load FRED data
+        fred_df = pd.read_csv(fred_path, parse_dates=['date'], index_col='date')
+        print(f"Loaded FRED data: {fred_df.shape[0]} observations, {fred_df.shape[1]} variables")
+
+        # Ensure housing data has datetime index for merging
+        housing_df = housing_df.copy()
+        housing_df['date'] = pd.to_datetime(housing_df['date'])
+
+        # Convert FRED to month-end to match housing data
+        fred_df.index = fred_df.index + pd.offsets.MonthEnd(0) - pd.offsets.MonthEnd(1) + pd.offsets.MonthBegin(0)
+
+        # Merge on date
+        merged = housing_df.merge(
+            fred_df.reset_index(),
+            on='date',
+            how='left'
+        )
+
+        # Create lagged features if requested
+        if lag_periods:
+            merged = self._create_lagged_features(merged, fred_df.columns.tolist(), lag_periods)
+
+        # Report merge results
+        n_matched = merged.dropna(subset=fred_df.columns[:1]).shape[0]
+        print(f"Merged dataset: {merged.shape[0]} observations, {merged.shape[1]} columns")
+        print(f"Observations with FRED data: {n_matched}")
+
+        return merged
+
+    def _create_lagged_features(self, df: pd.DataFrame,
+                                 feature_cols: List[str],
+                                 lag_periods: List[int]) -> pd.DataFrame:
+        """
+        Create lagged versions of economic indicator features.
+
+        Lagged features are useful because economic conditions often affect
+        housing prices with a delay.
+
+        Parameters:
+        -----------
+        df : pd.DataFrame
+            DataFrame with features to lag
+        feature_cols : list of str
+            Column names to create lags for
+        lag_periods : list of int
+            Number of periods to lag (e.g., [1, 3, 6, 12])
+
+        Returns:
+        --------
+        pd.DataFrame
+            DataFrame with additional lagged features
+        """
+        print(f"Creating lagged features for periods: {lag_periods}")
+
+        df = df.copy()
+
+        # Key variables to lag (not all variables need lags)
+        key_vars = [
+            'MORTGAGE30US', 'CTURN', 'UNRATE', 'FEDFUNDS',
+            'INFLATION_YOY', 'UMCSENT', 'HP_INDEX_YOY'
+        ]
+
+        for col in feature_cols:
+            if col in df.columns and col in key_vars:
+                for lag in lag_periods:
+                    df[f'{col}_LAG{lag}'] = df[col].shift(lag)
+
+        n_new = len(df.columns) - len(feature_cols) - 4  # Subtract original housing cols
+        print(f"Created {n_new} lagged features")
+
+        return df
+
+
+def merge_housing_and_fred_data(housing_path: str = 'data/processed/ct_housing_monthly.csv',
+                                 fred_path: str = 'data/raw/fred_economic_data.csv',
+                                 output_path: str = 'data/processed/ct_housing_with_fred.csv',
+                                 lag_periods: Optional[List[int]] = None) -> pd.DataFrame:
+    """
+    Standalone function to merge housing and FRED data files.
+
+    Parameters:
+    -----------
+    housing_path : str
+        Path to processed housing data CSV
+    fred_path : str
+        Path to FRED economic data CSV
+    output_path : str
+        Path to save merged dataset
+    lag_periods : list of int, optional
+        Lag periods for economic indicators (e.g., [1, 3, 6, 12])
+
+    Returns:
+    --------
+    pd.DataFrame
+        Merged dataset
+    """
+    print("=" * 80)
+    print("Merging Housing and FRED Economic Data")
+    print("=" * 80)
+
+    # Load housing data
+    print(f"\nLoading housing data from: {housing_path}")
+    housing_df = pd.read_csv(housing_path, parse_dates=['date'])
+    print(f"Housing data: {housing_df.shape[0]} observations")
+
+    # Load FRED data
+    print(f"\nLoading FRED data from: {fred_path}")
+    fred_df = pd.read_csv(fred_path, parse_dates=['date'], index_col='date')
+    print(f"FRED data: {fred_df.shape[0]} observations, {fred_df.shape[1]} variables")
+    print(f"FRED variables: {list(fred_df.columns)}")
+
+    # Align dates - ensure both are at month start
+    housing_df['date'] = pd.to_datetime(housing_df['date']).dt.to_period('M').dt.to_timestamp()
+    fred_df.index = pd.to_datetime(fred_df.index).to_period('M').to_timestamp()
+
+    # Merge
+    merged = housing_df.merge(
+        fred_df.reset_index().rename(columns={'index': 'date'}),
+        on='date',
+        how='left'
+    )
+
+    # Create lagged features if requested
+    if lag_periods:
+        print(f"\nCreating lagged features for periods: {lag_periods}")
+        key_vars = [
+            'MORTGAGE30US', 'CTURN', 'UNRATE', 'FEDFUNDS',
+            'INFLATION_YOY', 'UMCSENT', 'HP_INDEX_YOY', 'REAL_MORTGAGE_RATE'
+        ]
+
+        for col in fred_df.columns:
+            if col in key_vars:
+                for lag in lag_periods:
+                    merged[f'{col}_LAG{lag}'] = merged[col].shift(lag)
+
+    # Save merged data
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    merged.to_csv(output_path, index=False)
+    print(f"\nMerged data saved to: {output_path}")
+
+    # Print summary
+    print("\n" + "=" * 80)
+    print("MERGED DATA SUMMARY")
+    print("=" * 80)
+    print(f"Shape: {merged.shape}")
+    print(f"Date range: {merged['date'].min()} to {merged['date'].max()}")
+    print(f"\nColumns ({len(merged.columns)}):")
+    for col in merged.columns:
+        non_null = merged[col].notna().sum()
+        null_pct = (1 - non_null / len(merged)) * 100
+        print(f"  {col}: {non_null} obs ({null_pct:.1f}% missing)")
+
+    return merged
 
 
 def main():
