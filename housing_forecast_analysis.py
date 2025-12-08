@@ -69,8 +69,8 @@ ECON_CACHE_FILE = os.path.join(CACHE_DIR, 'economic_indicators.csv')
 CT_DATA_PORTAL = 'data.ct.gov'
 CT_DATASET_ID = '5mzw-sjtu'
 
-# FRED API key (optional - get free at fred.stlouisfed.org)
-FRED_API_KEY = None
+# FRED API key (get free at fred.stlouisfed.org)
+FRED_API_KEY = 'c550ff1c5cd3f18f5ef725059a054d88'
 
 # FRED series IDs
 FRED_SERIES = {
