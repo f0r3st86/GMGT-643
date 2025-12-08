@@ -44,9 +44,9 @@ FORECASTING CONNECTICUT HOUSING PRICES                                          
 
 Abstract
 
-This study examines the effectiveness of various forecasting methodologies for predicting residential housing prices in Connecticut. Utilizing transaction data from the Connecticut Open Data Portal encompassing over 1.1 million property sales from 2001 to 2024, combined with macroeconomic indicators from the Federal Reserve Economic Data database, six distinct forecasting models were developed and evaluated. The models tested include Naive forecasting, Holt-Winters Exponential Smoothing, Ridge Regression, Facebook Prophet, Ensemble averaging, and Seasonal Autoregressive Integrated Moving Average with Exogenous Variables with automated parameter selection. Results indicate that the Holt-Winters model achieved superior predictive performance with a Mean Absolute Percentage Error of 19.05%, followed by the Auto-SARIMAX model at 23.62%. These findings suggest that traditional time series methods effectively capture housing market dynamics and outperform more complex machine learning approaches during periods of significant market volatility.
+This paper presents my analysis of different forecasting methods to predict housing prices in Connecticut. I used real estate sales data from the Connecticut Open Data Portal, which had over a million property transactions, and combined it with economic data like mortgage rates and unemployment from the Federal Reserve database. I tested six different forecasting models to see which one could best predict housing prices: a simple Naive model, Holt-Winters, Ridge Regression, Facebook Prophet, an Ensemble approach, and an automated SARIMAX model. After running all the models, I found that Holt-Winters performed the best with about 19% error rate, followed by the Auto-SARIMAX at around 24%. My results suggest that sometimes simpler forecasting approaches work better than complicated machine learning methods, especially when the market behaves unexpectedly like it did during COVID-19.
 
-Keywords: housing price forecasting, time series analysis, machine learning, Connecticut real estate, predictive modeling
+Keywords: housing prices, forecasting, time series, machine learning, Connecticut real estate
 
 
 
@@ -69,125 +69,116 @@ Forecasting Connecticut Residential Housing Prices:
 
 A Comparative Analysis of Time Series and Machine Learning Models
 
-The residential real estate market represents one of the most significant asset classes in the United States economy. According to Federal Reserve data, housing wealth constitutes approximately 70% of total household wealth for the median American family (Board of Governors of the Federal Reserve System, 2023). The ability to accurately forecast housing prices carries substantial implications for multiple stakeholder groups, including real estate investors evaluating portfolio allocation decisions, mortgage lenders conducting risk assessments, policy makers monitoring economic conditions, and individual homeowners making purchase or sale decisions.
+For this project, I wanted to explore how well different forecasting methods could predict housing prices. Housing is something that affects almost everyone - whether you are buying a home, investing in real estate, or working at a bank that gives out mortgages. Being able to predict where prices are going seems like it would be really valuable for making better decisions.
 
-Connecticut presents a particularly compelling case for housing market analysis due to its distinctive market characteristics. The state's proximity to New York City generates substantial commuter demand, particularly in Fairfield County. Additionally, Connecticut possesses an aging housing stock, significant wealth concentration in certain municipalities, and has historically exhibited notable price volatility during economic cycles. These factors combine to create a complex forecasting environment that tests the capabilities of various predictive modeling approaches.
+I chose to focus on Connecticut for a few reasons. First, there was good data available through the state's open data portal. Second, Connecticut has an interesting housing market because it is close to New York City, which creates a lot of demand from commuters. The state also went through some big changes during COVID-19 when a lot of people moved out of the city to the suburbs, which made prices go up a lot.
+
+The main question I wanted to answer was: which forecasting method works best for predicting housing prices? I had learned about several different approaches in class, from simple methods to more advanced machine learning techniques, and I wanted to see how they compared using real data.
 
 Problem Statement
 
-Despite advances in statistical modeling and machine learning, accurate housing price prediction remains challenging. The COVID-19 pandemic, which began affecting markets in early 2020, created unprecedented disruptions to housing market dynamics. Median home prices in Connecticut increased by approximately 40% between 2020 and 2022, driven by historically low mortgage rates, urban-to-suburban migration patterns, and supply chain constraints limiting new construction (National Association of Realtors, 2023). This period of extraordinary volatility provides a rigorous test environment for evaluating forecasting model robustness.
+Predicting housing prices is harder than it might seem. There are so many factors that can affect prices - interest rates, the economy, population changes, and things nobody can predict like a pandemic. The COVID-19 period was especially challenging because prices in Connecticut went up by about 40% in just two years, which was way more than normal.
 
+I thought this would be a good test for the different forecasting models. If a model can handle a crazy period like COVID-19, it is probably pretty robust. And if it cannot, that tells us something important about its limitations.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   4
 
 Research Objectives
 
-This study pursues four primary objectives: (a) develop a robust data pipeline integrating Connecticut real estate transactions with relevant macroeconomic indicators, (b) implement and compare multiple forecasting methodologies spanning traditional statistical approaches to contemporary machine learning techniques, (c) evaluate model performance using industry-standard metrics during a challenging out-of-sample period encompassing the COVID-19 pandemic, and (d) provide actionable recommendations for practitioners selecting among available forecasting approaches.
+My goals for this project were to: (a) get the housing and economic data together in a format I could use for analysis, (b) try out several different forecasting methods that I learned about, (c) compare how well each method predicted prices during the 2019-2024 period, and (d) figure out which approach might be most useful for someone who actually needs to forecast housing prices.
 
 Literature Review
 
-Theoretical Framework
+Before building my models, I did some research on what other people have found about housing price forecasting.
 
-Housing prices are determined by the interaction of supply and demand forces operating within local, regional, and national contexts. On the demand side, factors including household income, population growth, mortgage interest rates, and consumer confidence influence the willingness and ability of buyers to purchase properties. On the supply side, construction costs, land availability, zoning regulations, and the existing housing stock determine the quantity of available units. The hedonic pricing model, introduced by Rosen (1974), provides a theoretical framework for understanding how individual property characteristics contribute to overall value.
+What Drives Housing Prices
 
-Time Series Forecasting Methods
+Housing prices basically come down to supply and demand. On the demand side, things like income levels, population growth, and mortgage rates determine how many people want to buy homes and how much they can afford. On the supply side, construction costs and how much land is available affect how many homes get built. Rosen (1974) wrote an influential paper about how you can break down a home's value into its different characteristics, which is called hedonic pricing.
 
-The application of time series methods to housing price prediction has a substantial history in the academic literature. Box-Jenkins Autoregressive Integrated Moving Average (ARIMA) models have been widely employed to capture the autocorrelation structures inherent in housing price series (Crawford & Fratantoni, 2003). These methods model future values as a function of past values and past forecast errors, with differencing applied to achieve stationarity.
+One thing that stood out from my reading is how important mortgage rates are. Himmelberg et al. (2005) found that when mortgage rates go up by 1%, people can afford about 10% less house. That is a big deal and helps explain why rates matter so much for prices.
 
+Forecasting Methods
+
+There are basically two main approaches to forecasting that I found in the literature. The first is time series methods, which look at patterns in the historical price data itself. These include ARIMA models that Crawford and Fratantoni (2003) studied, and exponential smoothing methods like Holt-Winters that Hyndman and Athanasopoulos (2021) discuss in their textbook.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   5
 
-Exponential smoothing methods, including the Holt-Winters approach, have demonstrated strong performance for time series exhibiting both trend and seasonal components (Hyndman & Athanasopoulos, 2021). The Holt-Winters method decomposes a series into level, trend, and seasonal components, with exponential weighting applied to historical observations. This approach offers computational simplicity while providing robust forecasts across diverse applications.
+The second approach is using regression and machine learning, where you try to predict prices based on other variables like economic indicators. Tibshirani (1996) developed Ridge and Lasso regression which help when your predictor variables are correlated with each other, which is common with economic data.
 
-Seasonal ARIMA models extend the basic ARIMA framework to accommodate periodic patterns, making them particularly suitable for housing markets where transaction volumes and prices typically exhibit seasonal fluctuations. The addition of exogenous variables (SARIMAX) allows these models to incorporate external predictors such as economic indicators.
+There is also a newer method called Prophet that Facebook developed (Taylor & Letham, 2018). It is supposed to be good at handling seasonal patterns and unusual events, so I thought it might do well with housing data.
 
-Machine Learning Approaches
+One interesting finding from Bates and Granger (1969) is that combining forecasts from different models often works better than using just one model. This is called ensemble forecasting, and I wanted to try that too.
 
-Recent years have witnessed growing interest in applying machine learning techniques to housing price prediction. Regularized regression methods, including Ridge and Lasso regression, address the multicollinearity issues common in housing datasets where economic predictors are often highly correlated (Tibshirani, 1996). These methods impose penalties on coefficient magnitudes, reducing overfitting and improving out-of-sample prediction.
+Method
 
-Facebook's Prophet algorithm represents a more recent contribution to the forecasting toolkit (Taylor & Letham, 2018). Designed for business time series with strong seasonal patterns, Prophet employs an additive decomposition model with automatic changepoint detection. The algorithm handles missing data and outliers gracefully, making it attractive for practical applications.
+Data Collection
 
-Ensemble Methods
+I got my housing data from the Connecticut Open Data Portal, which is a website where the state publishes public datasets. The real estate sales database had over 1.1 million property transactions going back to 2001. Each record had information like the sale price, date, what type of property it was, and where it was located.
 
-The combination of forecasts from multiple models, known as ensemble forecasting, has been shown to improve accuracy by reducing model-specific errors (Bates & Granger, 1969). This
+For economic data, I used the FRED database, which is run by the Federal Reserve Bank of St. Louis. I pulled data on the 30-year mortgage rate, Connecticut's unemployment rate, the Consumer Price Index (which measures inflation), and population estimates.
+
+Data Preparation
+
+The raw data needed quite a bit of cleaning before I could use it. Some of the dates were formatted wrong, and there were sales with really low prices (under $10,000) that were probably not real market transactions - maybe transfers between family members or something like that. I filtered those out.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   6
 
-approach recognizes that different models may capture different aspects of the underlying data generating process, and their combination can yield more robust predictions than any individual model.
+I also focused just on residential properties since commercial real estate works differently. After filtering, I calculated the median sale price for each month. I used the median instead of the average because real estate has a lot of outliers - like if one mansion sells for $10 million, that would throw off the average but would not affect the median as much.
 
-Economic Determinants of Housing Prices
+Once I had monthly median prices, I merged that with the economic data by date. My final dataset had 231 months of data from 2005 to 2024.
 
-The empirical literature has identified several key macroeconomic factors affecting residential property values. Mortgage interest rates represent perhaps the most significant determinant of housing affordability. Himmelberg et al. (2005) estimate that a one percentage point increase in mortgage rates reduces purchasing power by approximately 10%, with corresponding effects on prices. Unemployment rates reflect labor market conditions and household income stability, affecting both the ability to qualify for mortgages and the willingness to make major purchase commitments. The Consumer Price Index captures inflationary pressures that affect construction costs, land values, and nominal price levels.
+Train-Test Split
 
-Method
+For forecasting, you need to split your data into a training set (to build the model) and a test set (to see how well it works on new data). I used data from 2005-2018 for training, which gave me 163 months. Then I tested on 2019-2024, which was 69 months.
 
-Data Sources
+I specifically wanted the test period to include COVID-19 because I thought that would be a good stress test for the models. Any model can do okay when things are normal - the real test is how it handles unusual situations.
 
-This study employs two primary data sources. The first is the Connecticut Real Estate Sales database maintained by the Connecticut Office of Policy and Management and accessible through the Connecticut Open Data Portal. This comprehensive database contains property transaction records dating from 2001 to the present. Each record includes the sale amount, transaction date, property type classification, municipal location, and assessment information.
+The Forecasting Models
 
-The second data source is the Federal Reserve Economic Data (FRED) database maintained by the Federal Reserve Bank of St. Louis. From this source, macroeconomic variables were obtained including the 30-year fixed mortgage rate (MORTGAGE30US), Connecticut unemployment rate (CTURN), Consumer Price Index for All Urban Consumers (CPIAUCSL), and Connecticut population estimates (CTPOP).
+I tested six different forecasting approaches. Here is a brief explanation of each one:
+
+Naive Model. This is the simplest possible forecast - it just assumes tomorrow will be the same as today. Whatever the price was last month, that is the prediction for all future months. I included this as a baseline to make sure the other models were actually adding value.
+
+Holt-Winters. This method tries to capture three things: the overall level of prices, whether they are trending up or down, and seasonal patterns (like if prices are always higher in spring). It uses something called exponential smoothing, which basically means recent data points get more weight than older ones. I set it up to look for a 12-month seasonal pattern since housing markets tend to follow annual cycles.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   7
 
-Data Preprocessing
+Ridge Regression. This is a type of regression that works well when your predictor variables are correlated with each other. Regular regression can get unstable in that situation, but Ridge adds a penalty that keeps the coefficients from getting too extreme. I used the economic variables (mortgage rate, unemployment, inflation, population) as predictors.
 
-The raw housing transaction data required substantial preprocessing before analysis. First, date fields were parsed and standardized, with records containing invalid date values removed from the dataset. Second, non-arm's length transactions were filtered by excluding sales with amounts below $10,000, which typically represent transfers between family members, foreclosures, or recording errors. Third, the analysis was restricted to residential properties by filtering on property type classifications including single-family homes, condominiums, and multi-family residential buildings.
+Facebook Prophet. This is a forecasting tool that Facebook's data science team developed. It is designed to handle business data that has strong seasonal patterns and can adapt when there are sudden changes in trends. I thought it might handle the COVID period well since it is supposed to detect these kinds of shifts.
 
-Following these filtering steps, individual transactions were aggregated to monthly median sale prices. The use of median rather than mean values provides robustness against outliers, which are common in real estate transactions. This aggregation resulted in 231 monthly observations spanning from January 2005 to September 2024. The housing price series was then merged with monthly economic indicator data by date.
+Ensemble Model. Based on what I read about combining forecasts, I created a simple ensemble that averaged the predictions from Holt-Winters and Ridge Regression. The idea is that if one model is off in one direction and another is off in the other direction, the average might be closer to the truth.
 
-Train-Test Split
+Auto-SARIMAX. SARIMAX stands for Seasonal Autoregressive Integrated Moving Average with Exogenous variables - it is a mouthful. Basically, it is a flexible time series model that can include both seasonal patterns and outside variables like economic indicators. The "Auto" part means I used a software library called pmdarima that automatically figures out the best settings for the model instead of me having to guess.
 
-Following established practices in time series forecasting, the data was divided into training and testing sets using a temporal split. The training period encompasses January 2005 through December 2018, providing 163 monthly observations for model estimation. The testing period spans January 2019 through September 2024, comprising 69 months reserved for out-of-sample evaluation. This split provides adequate historical data for model training while reserving a substantial out-of-sample period that includes both normal market conditions and the COVID-19 disruption.
+How I Measured Performance
 
+I used four metrics to compare the models:
 
+RMSE (Root Mean Square Error). This tells you the typical size of errors in dollars. It penalizes big errors more than small ones because of the squaring.
 
+MAE (Mean Absolute Error). This is just the average error in dollars, treating all errors equally regardless of size.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   8
 
-Forecasting Models
+MAPE (Mean Absolute Percentage Error). This expresses errors as a percentage, which makes it easier to interpret. A MAPE of 20% means predictions are off by 20% on average.
 
-Six forecasting models were implemented, representing different methodological approaches to time series prediction.
-
-Naive Model. The naive model serves as a benchmark, using the last observed value as the forecast for all future periods. This simple approach establishes a minimum performance threshold that more sophisticated models should exceed to demonstrate value.
-
-Holt-Winters Exponential Smoothing. The Holt-Winters method extends simple exponential smoothing to accommodate both trend and seasonal components. The model decomposes the time series into three elements: a level component representing the baseline value, a trend component capturing systematic increase or decrease over time, and a seasonal component modeling periodic fluctuations. For this analysis, additive specifications were employed for both trend and seasonality, with a seasonal period of 12 months.
-
-Ridge Regression. Ridge regression addresses multicollinearity among predictor variables by augmenting the ordinary least squares objective function with an L2 penalty on coefficient magnitudes. The regularization parameter was set to 100 for this analysis. Predictor variables included the contemporaneous values of mortgage rate, unemployment rate, Consumer Price Index, and population.
-
-Facebook Prophet. The Prophet algorithm decomposes time series into trend, seasonality, and holiday components using an additive model. For this application, Prophet was configured with yearly seasonality enabled, multiplicative seasonality mode to accommodate the growing price series, and automatic changepoint detection to identify shifts in the underlying trend.
-
-
-
-FORECASTING CONNECTICUT HOUSING PRICES                                                   9
-
-Ensemble Model. The ensemble model combines forecasts from the Holt-Winters and Ridge regression models using simple averaging. This approach aims to leverage the complementary strengths of the two methods.
-
-Auto-SARIMAX. The Seasonal Autoregressive Integrated Moving Average with Exogenous Variables model extends the ARIMA framework to include seasonal components and external predictors. The pmdarima library's automatic model selection procedure was employed, searching over candidate specifications and evaluating each using the Akaike Information Criterion.
-
-Evaluation Metrics
-
-Model performance was assessed using four complementary metrics: Root Mean Square Error (RMSE), which provides a measure in dollar terms that penalizes large errors heavily; Mean Absolute Error (MAE), expressed in dollars with linear penalty for errors; Mean Absolute Percentage Error (MAPE), which expresses forecast errors as a percentage of actual values; and Coefficient of Determination (R²), which measures the proportion of variance explained by the model predictions.
+R-squared. This measures how much of the variation in prices the model explains. Usually it is between 0 and 1, but it can actually be negative if the model does worse than just predicting the average.
 
 Results
 
-Model Performance Comparison
+Main Findings
 
-Table 1 presents the comparative performance of all six models on the test set spanning January 2019 through September 2024. Models are ranked by Mean Absolute Percentage Error, with lower values indicating superior predictive accuracy.
-
-
-
-
-
-FORECASTING CONNECTICUT HOUSING PRICES                                                   10
+Table 1 shows how all six models performed on the test data. I ranked them by MAPE since I think percentage error is the most intuitive measure.
 
 Table 1
 
-Model Performance Comparison on Test Set (2019-2024)
+Model Performance Comparison (2019-2024 Test Period)
 
 Model                   RMSE ($)        MAE ($)         MAPE (%)        R²
 ─────────────────────────────────────────────────────────────────────────────
@@ -199,125 +190,123 @@ Ensemble                116,471         95,117          29.26           -4.71
 Ridge Regression        163,746         130,906         40.12           -10.29
 ─────────────────────────────────────────────────────────────────────────────
 
-Note. RMSE = Root Mean Square Error; MAE = Mean Absolute Error; MAPE = Mean Absolute Percentage Error. Models ranked by MAPE (lower is better).
+Note. Models ranked by MAPE (lower is better). RMSE = Root Mean Square Error; MAE = Mean Absolute Error.
 
 
-The Holt-Winters exponential smoothing model achieved the best performance across all four evaluation metrics. With a MAPE of 19.05%, the model's forecasts deviated from actual prices by an average of approximately $61,000 over the test period. The Auto-SARIMAX model ranked second with a MAPE of 23.62%, representing a meaningful improvement over the Naive benchmark.
+The Holt-Winters model performed best with a MAPE of about 19%. That means on average, its predictions were off by about 19% from the actual prices - so if a home sold for $350,000, the prediction might have been around $285,000 to $415,000.
 
-Notably, the Naive model outperformed several more sophisticated approaches, including Prophet, the Ensemble, and Ridge regression. This counterintuitive result reflects the extraordinary nature of the test period, during which housing prices deviated substantially from patterns observed in the training data.
+Auto-SARIMAX came in second at around 24% MAPE. What surprised me was that the Naive model (which does not really do anything sophisticated) actually beat Prophet and the Ensemble approach. Ridge Regression did the worst by far at 40% error.
 
-Interpretation of Negative R-squared Values
 
-All models exhibit negative R² values on the test set. This outcome is expected when test period dynamics differ substantially from training period patterns. A negative R² indicates that model predictions explain less variance than a simple historical mean, which can occur when the test period represents a structural break from historical norms.
+FORECASTING CONNECTICUT HOUSING PRICES                                                   9
+
+Why the R-squared Values Are Negative
+
+When I first saw the negative R-squared values, I thought I did something wrong. But after looking into it more, I learned this can happen when your test period is very different from your training period.
+
+During COVID-19, housing prices went up way faster than anything in the historical data. The models were trained on data where prices grew slowly and steadily, and then suddenly in 2020-2021, prices shot up 40% in two years. None of the models could predict that because nothing like it had happened before.
+
+A negative R-squared basically means the model did worse than if you just predicted the average price for everything. It is not great, but it makes sense given how unusual the test period was.
+
+The Lagged Indicator Finding
+
+One thing I discovered while experimenting was that the timing of economic variables matters a lot. When I used current mortgage rates to predict current prices, it did not work well. But when I used mortgage rates from 12 months ago to predict current prices, the results improved dramatically.
+
+Table 2
+
+Effect of Using Lagged Economic Variables
+
+Configuration                           MAPE (%)                R²
+─────────────────────────────────────────────────────────────────────────────
+Current economic indicators             40.12                   -10.29
+12-month lagged indicators              11.53                   +0.23
+─────────────────────────────────────────────────────────────────────────────
+
+Note. Results shown for Ridge Regression model.
+
+
+FORECASTING CONNECTICUT HOUSING PRICES                                                   10
+
+This makes sense when you think about it. When mortgage rates change, it takes time for that to show up in prices. Buyers need to adjust their budgets, sellers need to adjust their expectations, and deals take months to close. So what is happening in the economy today tells you more about where prices will be in a year than where they are right now.
+
+Discussion
+
+What I Learned
+
+This project taught me several things about forecasting:
+
+Simple can be better. I expected the more sophisticated methods like Prophet and the Ensemble to do better, but the relatively simple Holt-Winters model won. I think this is because the complicated models tried too hard to fit the historical patterns, and when those patterns broke during COVID, they were way off. Holt-Winters just follows the trend and seasonal pattern without overthinking it.
+
+Automation helps. The Auto-SARIMAX model performed much better than when I tried to manually pick the SARIMAX parameters earlier in my analysis. Getting those parameters wrong led to errors over 80%. The automated approach found settings that worked much better. This suggests that using tools that can optimize settings is better than trying to guess.
+
+Timing matters for economic variables. The 12-month lag finding was probably my most interesting discovery. It suggests that if you want to use economic indicators for forecasting, you need to think about when they actually affect prices, not just whether they are related.
+
+Limitations
+
+There are several limitations to my analysis that I should acknowledge:
+
+First, I used state-level data, but housing markets really vary a lot by location. Fairfield County near New York City is very different from rural eastern Connecticut. A more detailed analysis would look at smaller geographic areas.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   11
 
-The COVID-19 pandemic triggered an unprecedented housing market surge driven by multiple factors operating simultaneously: mortgage interest rates declined to historic lows below 3% in 2020-2021; urban-to-suburban migration accelerated as remote work arrangements enabled household relocation; supply chain disruptions limited new construction; and fiscal stimulus programs increased household savings. These extraordinary conditions produced price increases of approximately 40% over a two-year period, a trajectory no model trained on pre-2019 data could reasonably have anticipated.
+Second, I only used a few economic variables. There are probably other factors that matter, like housing inventory levels, new construction, or migration patterns, that I did not include.
 
-Analysis of Individual Model Performance
+Third, I did not spend a lot of time tuning the models. With more time, I could probably improve performance by trying different settings and parameters.
 
-The success of the Holt-Winters model can be attributed to several factors. First, the method effectively captures the underlying upward trend in Connecticut housing prices that has persisted across the full sample period. Second, it models the seasonal pattern in housing transactions, where spring and summer months typically exhibit higher prices. Third, the exponential smoothing approach adapts gradually to changing conditions without overfitting to noise.
+Fourth, the COVID-19 period was really unusual. The models might perform differently during more normal times.
 
-The Auto-SARIMAX model's performance merits attention. The automated parameter selection procedure identified ARIMA(0,1,1)(0,0,0)[12] as the optimal specification, indicating that first-order differencing adequately captures the trend component and a single moving average term models short-term dependencies. The MAPE of 23.62% represents substantial improvement over manually-specified SARIMAX models tested in preliminary analysis, which exhibited MAPE values exceeding 80%.
+Practical Implications
 
-Impact of Lagged Economic Indicators
+Based on my results, here is what I would suggest for different users:
 
-Supplementary analysis examined whether incorporating lagged economic indicators improves regression model performance. The rationale stems from recognition that economic conditions affect housing prices with delay—changes in mortgage rates require time to filter
+For investors trying to forecast prices, I would recommend using Holt-Winters or a similar exponential smoothing approach for the near term. It is relatively simple to implement and performed best in my testing. For longer-term forecasts, incorporating lagged economic indicators through regression could add value.
+
+For banks and mortgage lenders, understanding that economic changes take about a year to show up in prices is important. If rates are rising today, that will affect collateral values down the road, not immediately.
+
+For anyone doing forecasting, my results show that you should always test your models on recent data that the model has not seen before. A model might look great on historical data but fail badly when conditions change.
+
+Conclusion
+
+In this project, I compared six different methods for forecasting Connecticut housing prices: Naive, Holt-Winters, Ridge Regression, Prophet, Ensemble, and Auto-SARIMAX. Testing on data from 2019-2024, which included the COVID-19 period, I found that Holt-Winters performed best with about 19% average error.
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   12
 
-through the market as prospective buyers adjust behavior and sellers respond to changing demand. Table 2 presents results.
+The key takeaways from my analysis are:
 
-Table 2
+1. Simpler forecasting methods can outperform more complex ones, especially during unusual market conditions.
 
-Impact of Lagged Economic Indicators on Ridge Regression Performance
+2. Automated parameter selection (like Auto-SARIMAX) works better than manual guessing for complex models.
 
-Configuration                           MAPE (%)                R²
-─────────────────────────────────────────────────────────────────────────────
-Contemporaneous indicators              40.12                   -10.29
-12-month lagged indicators              11.53                   +0.23
-─────────────────────────────────────────────────────────────────────────────
+3. Economic indicators affect housing prices with a delay of about 12 months, so using lagged variables improves predictions significantly.
 
-Note. MAPE = Mean Absolute Percentage Error.
+4. All models struggled during COVID-19, showing that extreme events are very hard to predict.
+
+For future work, it would be interesting to look at more localized data at the town or county level, include additional variables like housing inventory, and test some newer deep learning approaches that I did not have time to explore.
+
+Overall, this project gave me a good appreciation for both the potential and the limitations of forecasting. While we can use data and models to make better predictions than just guessing, there will always be uncertainty, especially when unprecedented events occur. The best approach is probably to use forecasts as one input into decisions while acknowledging their limitations.
 
 
-The incorporation of lagged indicators produces dramatic improvement. The MAPE decreases from 40.12% to 11.53%, and R² shifts from negative to positive, indicating the model explains meaningful variance in housing prices. This finding suggests that relationships between economic conditions and housing prices operate with significant temporal delay.
 
-Discussion
 
-The results yield several important insights for housing price forecasting. First, simpler models demonstrated competitive or superior performance relative to more complex alternatives during significant market disruption. The Holt-Winters method, relying solely on historical price patterns without incorporating external economic information, outperformed regression models and machine learning approaches utilizing multiple predictor variables.
 
-This finding aligns with the broader forecasting literature documenting the "forecasting paradox" whereby simple methods often match or exceed sophisticated techniques (Makridakis et al., 2018). Complex models with numerous parameters are susceptible to overfitting historical patterns that may not persist. During structural change periods such as the COVID-19 pandemic, this overfitting can result in particularly poor performance.
+
+
+
+
+
+
+
 
 
 FORECASTING CONNECTICUT HOUSING PRICES                                                   13
-
-Second, automated model selection procedures demonstrated clear value. The Auto-SARIMAX approach achieved substantially better results than manually-specified alternatives, suggesting practitioners should leverage available computational tools rather than relying on judgment-based parameter selection.
-
-Third, analysis of lagged economic indicators revealed important housing market dynamics. The 12-month lag structure implies current economic conditions provide information about housing prices one year hence. Theoretically, this suggests housing markets adjust slowly to changing economic conditions due to search frictions, contracting delays, and expectation formation processes. Practically, models incorporating lagged predictors may offer superior forecasting performance.
-
-Implications for Practice
-
-Real Estate Investors. The approximately 19% MAPE achieved by the best-performing model implies substantial forecast uncertainty requiring incorporation into investment decisions. Point forecasts should be supplemented with confidence intervals, and sensitivity analysis should examine investment performance under alternative price scenarios. The trend and seasonal components identified by Holt-Winters provide actionable insights regarding long-term price direction and optimal transaction timing.
-
-Mortgage Lenders. Price forecasts can inform stress testing of loan portfolios, allowing assessment of potential losses under adverse scenarios. The lagged relationship between mortgage rates and housing prices has implications for collateral valuation—rate changes implemented today will affect property values with delay, suggesting loan-to-value calculations should incorporate forward-looking price projections.
-
-
-
-FORECASTING CONNECTICUT HOUSING PRICES                                                   14
-
-Policy Makers. The difficulty forecasting housing prices during COVID-19 underscores challenges anticipating market behavior during extraordinary circumstances. The lagged structure of economic relationships implies policy interventions require extended time horizons to achieve full effect—interest rate changes appear to affect housing prices with approximately 12-month delay.
-
-Limitations
-
-Several limitations should be acknowledged. First, the analysis employs state-level median prices aggregating across Connecticut's diverse submarkets. Second, the economic predictor variables, while covering major factors, do not exhaust potentially relevant information such as housing inventory levels or migration flows. Third, models were implemented with default or lightly-tuned hyperparameters; extensive cross-validation could potentially improve results. Fourth, the COVID-19 pandemic represents a structural break of unusual magnitude that may not represent typical forecasting challenges.
-
-Conclusion
-
-This study conducted comprehensive evaluation of forecasting methods for Connecticut residential housing prices. Analysis of six models spanning traditional time series approaches to machine learning techniques yields several conclusions.
-
-The Holt-Winters exponential smoothing model achieved best predictive performance with MAPE of 19.05% over the 2019-2024 test period, demonstrating that traditional time series methods remain highly competitive for housing price forecasting, particularly when markets experience structural changes invalidating historical relationships between prices and economic predictors.
-
-
-
-
-FORECASTING CONNECTICUT HOUSING PRICES                                                   15
-
-Automated model selection procedures provide substantial value—Auto-SARIMAX achieved 23.62% MAPE compared to over 80% for manually-specified alternatives. Economic relationships in housing markets operate with significant temporal lags, and models incorporating 12-month lagged economic indicators achieved dramatically better performance.
-
-For practitioners, a pragmatic approach is recommended: use Holt-Winters or Auto-SARIMAX for short-term forecasting where capturing trend and seasonality is paramount, while incorporating lagged economic indicators in regression frameworks for longer-horizon projections. Forecast uncertainty must be explicitly acknowledged—even the best model exhibits nearly 20% average error, indicating point forecasts should be supplemented with uncertainty quantification and scenario analysis.
-
-Future research directions include geographic disaggregation to town or county levels, incorporation of alternative data sources, application of deep learning methods, and development of probabilistic forecasting approaches providing full predictive distributions.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-FORECASTING CONNECTICUT HOUSING PRICES                                                   16
 
 References
 
 Bates, J. M., & Granger, C. W. J. (1969). The combination of forecasts. Operations Research
 
         Quarterly, 20(4), 451-468. https://doi.org/10.1057/jors.1969.103
-
-Board of Governors of the Federal Reserve System. (2023). Survey of consumer finances.
-
-        Federal Reserve Board.
 
 Crawford, G. W., & Fratantoni, M. C. (2003). Assessing the forecasting performance of regime-
 
@@ -341,18 +330,9 @@ Makridakis, S., Spiliotis, E., & Assimakopoulos, V. (2018). Statistical and mach
 
         https://doi.org/10.1371/journal.pone.0194889
 
-National Association of Realtors. (2023). Housing statistics. https://www.nar.realtor/research-
-
-        and-statistics/housing-statistics
-
 Rosen, S. (1974). Hedonic prices and implicit markets: Product differentiation in pure
 
         competition. Journal of Political Economy, 82(1), 34-55. https://doi.org/10.1086/260169
-
-
-
-
-FORECASTING CONNECTICUT HOUSING PRICES                                                   17
 
 Taylor, S. J., & Letham, B. (2018). Forecasting at scale. The American Statistician, 72(1), 37-45.
 
