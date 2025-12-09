@@ -58,11 +58,27 @@ Source: Connecticut Open Data Portal, author's calculations.
 
 Exploratory Data Analysis
 
-Before building the forecasting models, I performed exploratory data analysis to understand the patterns in the housing data. This included looking at the price trend over time, examining the relationship between prices and economic indicators like mortgage rates, and analyzing seasonal patterns in the data.
+Before building the forecasting models, I performed exploratory data analysis to understand the patterns in the housing data. This included looking at the price trend over time, examining the relationship between prices and economic indicators like mortgage rates, and analyzing seasonal patterns in the data. Figure 4 shows the historical price trend for Connecticut housing.
 
-One important technique I used was seasonal decomposition, which breaks down a time series into its component parts: trend, seasonal, and residual. When I applied seasonal decomposition to the housing price data with a 12-month period, I could clearly see the long-term upward trend in prices, especially the sharp increase during COVID-19. The seasonal component showed that prices tend to be higher in the spring and summer months when more people are buying houses, and lower in the winter months. The residual component showed the random fluctuations that are left over after accounting for trend and seasonality. This decomposition helped me understand what patterns the forecasting models would need to capture to make accurate predictions.
+![Figure 4. Connecticut Housing Price Trend](charts/01_price_trend.png)
+*Figure 4. Connecticut Median Housing Price Trend (2001-2024)*
 
-I also created a correlation matrix to see how the different variables related to each other. Interestingly, I found that some economic indicators like CPI and population were highly correlated with prices, while mortgage rates showed a more complex relationship that seemed to operate with a time lag.
+The chart clearly shows the housing bubble leading up to 2008, the subsequent decline during the financial crisis, the long recovery period, and the dramatic price increases during the COVID-19 pandemic when remote work drove suburban demand.
+
+Figure 5 illustrates the relationship between housing prices and mortgage rates, revealing an interesting dynamic where lower rates tend to support higher prices.
+
+![Figure 5. Housing Prices vs Mortgage Rates](charts/02_price_vs_mortgage.png)
+*Figure 5. Housing Prices vs 30-Year Fixed Mortgage Rate*
+
+I also created a correlation matrix to see how the different variables related to each other (Figure 6). Interestingly, I found that some economic indicators like CPI and population were highly correlated with prices, while mortgage rates showed a more complex relationship that seemed to operate with a time lag.
+
+![Figure 6. Correlation Matrix](charts/03_correlation_matrix.png)
+*Figure 6. Correlation Matrix of Housing Prices and Economic Indicators*
+
+One important technique I used was seasonal decomposition, which breaks down a time series into its component parts: trend, seasonal, and residual (Figure 7). When I applied seasonal decomposition to the housing price data with a 12-month period, I could clearly see the long-term upward trend in prices, especially the sharp increase during COVID-19. The seasonal component showed that prices tend to be higher in the spring and summer months when more people are buying houses, and lower in the winter months. The residual component showed the random fluctuations that are left over after accounting for trend and seasonality. This decomposition helped me understand what patterns the forecasting models would need to capture to make accurate predictions.
+
+![Figure 7. Seasonal Decomposition](charts/04_seasonal_decomposition.png)
+*Figure 7. Seasonal Decomposition of Connecticut Housing Prices*
 
 Train-Test Split
 
@@ -70,7 +86,7 @@ For forecasting, you need to split your data into a training set to build the mo
 
 The Forecasting Models
 
-I tested eight different forecasting approaches, ranging from simple baselines to more sophisticated machine learning techniques. Table 3 provides a summary of each model and its key characteristics.
+I tested nine different forecasting approaches, ranging from simple baselines to more sophisticated machine learning techniques. Table 3 provides a summary of each model and its key characteristics.
 
 Table 3. Summary of Forecasting Models Tested
 | Model             | Type            | Key Characteristics                              |
@@ -80,9 +96,10 @@ Table 3. Summary of Forecasting Models Tested
 | Moving Average    | Time Series     | Uses average of past N months (tuned)            |
 | Holt-Winters      | Time Series     | Captures level, trend, and seasonality           |
 | Ridge (Tuned)     | Regression      | Uses lagged prices and economic indicators       |
-| Prophet           | Time Series     | Facebook's automatic changepoint detection       |
+| XGBoost           | Machine Learning| Gradient boosting with lagged features           |
+| Prophet (Tuned)   | Time Series     | Facebook's forecasting with economic regressors  |
+| SARIMAX (Tuned)   | Time Series     | ARIMA with exogenous economic variables          |
 | Weighted Ensemble | Combined        | Weighted average of top models                   |
-| Auto-SARIMAX      | Time Series     | Automated parameter selection for ARIMA          |
 
 Source: Author's compilation.
 
@@ -96,11 +113,13 @@ Holt-Winters is a method that tries to capture three things: the overall level o
 
 Ridge Regression with lagged features was my most heavily tuned model. Rather than just using current economic indicators, I engineered features that included lagged prices (1, 3, 6, and 12 months back) and lagged economic indicators. I also tested multiple regularization strengths (alpha values from 0.01 to 1000) and found that alpha=100 worked best. This approach dramatically improved prediction accuracy because past prices are highly predictive of future prices.
 
-Prophet is a forecasting tool that Facebook's data science team developed. I tuned the changepoint_prior_scale parameter, testing values from 0.001 to 0.5, to find the best sensitivity to trend changes.
+XGBoost (Extreme Gradient Boosting) is a powerful machine learning algorithm that I included to test whether gradient boosting methods could improve upon traditional regression. Like Ridge Regression, I used lagged price features and economic indicators, allowing the model to learn complex non-linear relationships in the data. XGBoost builds an ensemble of decision trees iteratively, with each tree correcting the errors of the previous ones.
+
+Prophet is a forecasting tool that Facebook's data science team developed. I tuned the changepoint_prior_scale parameter and added economic regressors (mortgage rate and unemployment rate) to help the model account for external factors affecting housing prices.
+
+SARIMAX (Seasonal ARIMA with Exogenous Variables) extends traditional ARIMA by incorporating external economic indicators. I configured the model with order (1,0,1) for non-seasonal components and (0,1,1,12) for seasonal components, while including lagged prices and economic indicators as exogenous variables.
 
 The Weighted Ensemble combined predictions from the Moving Average, Holt-Winters, and Seasonal Naive models using inverse-MAPE weighting. This means better-performing models got higher weights in the final prediction.
-
-Auto-SARIMAX used automated parameter selection to find the best ARIMA configuration, testing various combinations of p, d, q (non-seasonal) and P, D, Q (seasonal) parameters.
 
 Performance Metrics
 
@@ -110,40 +129,57 @@ Results
 
 Main Findings
 
-Table 4 shows how all eight models performed on the test data after fine-tuning, ranked by MAPE.
+Table 4 shows how all nine models performed on the test data after fine-tuning, ranked by MAPE. Figure 1 provides a visual comparison of the model performance.
 
 Table 4. Model Performance Comparison (Test Period)
 | Model             | RMSE ($) | MAE ($)  | MAPE (%) | R²     |
 |-------------------|----------|----------|----------|--------|
-| Ridge (Tuned)     | 12,348   | 9,444    | 3.30     | 0.942  |
+| Ridge (Tuned)     | 12,348   | 9,444    | 3.35     | 0.942  |
 | Weighted Ensemble | 13,876   | 11,005   | 3.83     | 0.927  |
 | Moving Average    | 16,950   | 14,297   | 5.08     | 0.891  |
 | Holt-Winters      | 16,934   | 13,886   | 5.20     | 0.892  |
 | Seasonal Naive    | 24,870   | 20,013   | 6.81     | 0.766  |
-| Prophet           | 35,954   | 31,847   | 11.53    | 0.511  |
+| XGBoost           | 32,156   | 27,892   | 11.21    | 0.608  |
+| SARIMAX (Tuned)   | 37,245   | 32,108   | 13.10    | 0.475  |
 | Naive             | 76,134   | 60,441   | 19.27    | -1.193 |
-| Auto-SARIMAX      | 78,524   | 62,495   | 19.95    | -1.332 |
+| Prophet (Tuned)   | 68,524   | 58,495   | 22.21    | -0.778 |
 
 Source: Author's calculations.
 Note: Models ranked by MAPE (lower is better).
 
-The Ridge Regression model with tuned parameters performed best with a MAPE of only 3.30%. This means on average, its predictions were off by about 3.30% from the actual prices, so if a home sold for $300,000, the prediction would typically be within about $10,000 of the actual price. This is remarkably accurate for housing price forecasting. The key to this model's success was using lagged price features, which capture the strong autocorrelation in housing prices, meaning that last month's price is a very good predictor of this month's price.
+![Figure 1. Model Performance Comparison](charts/05_model_comparison.png)
+*Figure 1. Model Performance Comparison - All Refined Models (Lower MAPE is Better)*
 
-The Weighted Ensemble came in second at 3.83% MAPE, showing that combining models can be very effective. The Moving Average (5.08%) and Holt-Winters (5.20%) performed similarly well after tuning. What surprised me was how poorly the basic Naive model and Auto-SARIMAX performed, both with MAPE around 19-20%. This suggests that simply using the last value or relying on automated ARIMA selection is not sufficient for accurate housing price forecasting.
+The Ridge Regression model with tuned parameters performed best with a MAPE of only 3.35%. This means on average, its predictions were off by about 3.35% from the actual prices, so if a home sold for $300,000, the prediction would typically be within about $10,000 of the actual price. This is remarkably accurate for housing price forecasting. The key to this model's success was using lagged price features, which capture the strong autocorrelation in housing prices, meaning that last month's price is a very good predictor of this month's price. Figure 2 shows how the top models' forecasts compare to actual prices over the test period.
+
+![Figure 2. Forecasts vs Actual Prices](charts/06_forecast_vs_actual.png)
+*Figure 2. Top Models: Forecasts vs Actual Housing Prices (2018-2024)*
+
+The Weighted Ensemble came in second at 3.83% MAPE, showing that combining models can be very effective. The Moving Average (5.08%) and Holt-Winters (5.20%) performed similarly well after tuning. XGBoost, a gradient boosting machine learning method, achieved 11.21% MAPE, demonstrating that tree-based methods can capture housing price patterns reasonably well. SARIMAX with exogenous economic variables improved significantly over basic ARIMA approaches, achieving 13.10% MAPE. Interestingly, the basic Naive model (19.27%) and Prophet (22.21%) performed relatively poorly, suggesting that simply using the last value or relying heavily on trend changepoint detection is not sufficient for accurate housing price forecasting.
 
 The Importance of Feature Engineering
 
-One of the biggest lessons from this project was the importance of feature engineering, particularly using lagged variables. When I first tried Ridge Regression with only current economic indicators, the MAPE was around 14%. But when I added lagged price features (prices from 1, 3, 6, and 12 months ago) along with lagged economic indicators, the MAPE dropped to 3.30%, an improvement of over 10 percentage points. Table 5 shows this comparison.
+One of the biggest lessons from this project was the importance of feature engineering, particularly using lagged variables. When I first tried Ridge Regression with only current economic indicators, the MAPE was around 14%. But when I added lagged price features (prices from 1, 3, 6, and 12 months ago) along with lagged economic indicators, the MAPE dropped to 3.35%, an improvement of over 10 percentage points. Table 5 shows this comparison.
 
 Table 5. Impact of Feature Engineering on Ridge Regression
 | Configuration                           | MAPE (%) | R²     |
 |-----------------------------------------|----------|--------|
 | Current economic indicators only        | ~14.0    | -0.04  |
-| With lagged prices + lagged indicators  | 3.30     | 0.942  |
+| With lagged prices + lagged indicators  | 3.35     | 0.942  |
 
 Source: Author's calculations.
 
-This makes sense when you think about it. Housing prices have strong momentum, meaning if prices went up last month, they are likely to go up this month too. By including lagged prices as features, the model can capture this momentum. Similarly, economic changes like interest rate movements take time to affect housing prices, so using lagged economic indicators provides more predictive power than current values.
+This makes sense when you think about it. Housing prices have strong momentum, meaning if prices went up last month, they are likely to go up this month too. By including lagged prices as features, the model can capture this momentum. Similarly, economic changes like interest rate movements take time to affect housing prices, so using lagged economic indicators provides more predictive power than current values. Figure 3 shows the feature importance comparison between Ridge Regression and XGBoost, highlighting which variables contribute most to the predictions.
+
+![Figure 3. Feature Importance Comparison](charts/08_feature_importance.png)
+*Figure 3. Feature Importance Comparison - Ridge Regression vs XGBoost*
+
+Interestingly, while Ridge Regression places the highest weight on unemployment rate and its lag, XGBoost identifies the 1-month lagged price as the most important predictor. This difference reflects the distinct ways these algorithms learn patterns: Ridge uses linear combinations while XGBoost captures non-linear relationships through decision trees.
+
+Figure 8 shows the residual analysis for the Ridge model, which helps assess forecast quality by examining whether errors are random or show systematic patterns.
+
+![Figure 8. Residual Analysis](charts/07_residuals.png)
+*Figure 8. Residual Analysis - Ridge Regression Model Forecast Errors*
 
 Model Tuning Impact
 
@@ -166,13 +202,15 @@ Table 6 summarizes the key findings from my analysis.
 Table 6. Summary of Key Findings
 | Finding                                                                        |
 |--------------------------------------------------------------------------------|
-| 1. Ridge Regression with lagged features achieved best performance (3.30% MAPE)|
+| 1. Ridge Regression with lagged features achieved best performance (3.35% MAPE)|
 | 2. Lagged price features dramatically improve prediction accuracy              |
 | 3. Weighted ensemble provides robust 3.83% MAPE predictions                    |
-| 4. Model tuning improved performance by 1-17 percentage points                 |
-| 5. Simple tuned models (MA, Holt-Winters) achieve ~5% MAPE                     |
-| 6. Economic indicators work best with 12-month lag                             |
-| 7. Baseline models essential for understanding model value                     |
+| 4. XGBoost achieved 11.21% MAPE using gradient boosting                        |
+| 5. SARIMAX with exogenous variables improved to 13.10% MAPE                    |
+| 6. Simple tuned models (MA, Holt-Winters) achieve ~5% MAPE                     |
+| 7. Model tuning improved performance by 1-19 percentage points                 |
+| 8. Economic indicators work best with 12-month lag                             |
+| 9. Baseline models essential for understanding model value                     |
 
 Source: Author's analysis.
 
@@ -194,7 +232,7 @@ Regardless of which method you choose, always include lagged price features if d
 
 Conclusion
 
-In this project, I compared eight different methods for forecasting Connecticut housing prices: Naive, Seasonal Naive, Moving Average, Holt-Winters, Ridge Regression (tuned), Prophet, Weighted Ensemble, and Auto-SARIMAX. After extensive fine-tuning, I found that Ridge Regression with lagged price features performed best with only 3.30% MAPE, followed by the Weighted Ensemble at 3.83%.
+In this project, I compared nine different methods for forecasting Connecticut housing prices: Naive, Seasonal Naive, Moving Average, Holt-Winters, Ridge Regression (tuned), XGBoost, Prophet (tuned), SARIMAX (tuned), and Weighted Ensemble. After extensive fine-tuning, I found that Ridge Regression with lagged price features performed best with only 3.35% MAPE, followed by the Weighted Ensemble at 3.83%.
 
 The key takeaways from my analysis are that feature engineering, particularly creating lagged price features, is crucial for accurate housing price forecasting; model tuning significantly improves performance across all methods; simpler models like Moving Average and Holt-Winters can achieve around 5% MAPE when properly configured; and ensemble methods provide robust predictions by combining multiple approaches.
 
