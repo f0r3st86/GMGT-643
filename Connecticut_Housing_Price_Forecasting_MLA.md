@@ -33,6 +33,8 @@ Table 1. Economic Indicator Variables Used in Analysis
 | Unemployment Rate    | CTURN          | Connecticut unemployment rate (%)   |
 | Consumer Price Index | CPIAUCSL       | CPI for All Urban Consumers         |
 | Population           | CTPOP          | Connecticut population estimate     |
+| Building Permits     | CTBPPRIVSA     | CT private building permits         |
+| Per Capita Income    | CTPCPI         | Connecticut per capita income       |
 
 Source: Federal Reserve Economic Data (FRED), Federal Reserve Bank of St. Louis.
 
